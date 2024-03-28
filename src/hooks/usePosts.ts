@@ -6,10 +6,12 @@ import {
     PostWithCommentsAndUsers,
 } from "../types/post";
 
-const usePosts = (postId?: number) => {
+const usePosts = (postId?: number, limit = 50) => {
     const [posts, setPosts] = useState<PostWithCommentsAndUsers[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
+    const [page, setPage] = useState<number>(1);
+    const [hasMore, setHasMore] = useState<boolean>(true);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -21,7 +23,9 @@ const usePosts = (postId?: number) => {
                     );
                     postsData = [postData];
                 } else {
-                    postsData = await fetchResource<PostType[]>("posts");
+                    postsData = await fetchResource<PostType[]>(
+                        `posts?_limit=${limit}&_page=${page}`
+                    );
                 }
 
                 const [usersData, commentsData] = await Promise.all([
@@ -37,7 +41,14 @@ const usePosts = (postId?: number) => {
                     ),
                 }));
 
-                setPosts(postsWithCommentsAndUsers);
+                setPosts((prevPosts) => {
+                    if (page === 1) {
+                        return [...postsWithCommentsAndUsers];
+                    } else {
+                        return [...prevPosts, ...postsWithCommentsAndUsers];
+                    }
+                });
+                setHasMore(postsData.length === limit);
                 setLoading(false);
             } catch (error) {
                 setError((error as Error).message.toString());
@@ -46,7 +57,7 @@ const usePosts = (postId?: number) => {
         };
 
         fetchData();
-    }, [postId]);
+    }, [postId, page, limit]);
 
     const fetchResource = async <T>(resource: string): Promise<T> => {
         const response = await fetch(
@@ -58,7 +69,7 @@ const usePosts = (postId?: number) => {
         return response.json();
     };
 
-    return { posts, loading, error };
+    return { posts, loading, error, hasMore, setPage };
 };
 
 export default usePosts;

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { PostWithCommentsAndUsers } from "@/types/post";
 import { PostItem } from "@/components/posts/PostItem";
 import usePosts from "@/hooks/usePosts";
@@ -6,12 +6,27 @@ import { useMessage } from "@/context/MessageContext";
 
 export const Posts = () => {
     useMessage("PostsView");
-    const { posts, loading, error } = usePosts() || {
+    const { posts, loading, error, hasMore, setPage } = usePosts() || {
         posts: [],
         loading: true,
         error: null,
     };
     const [searchQuery, setSearchQuery] = useState("");
+    const observer = useRef<IntersectionObserver>();
+
+    const lastPostElementRef = useCallback(
+        (node: Element | null) => {
+            if (loading) return;
+            if (observer.current) observer.current.disconnect();
+            observer.current = new IntersectionObserver((entries) => {
+                if (entries[0].isIntersecting && hasMore) {
+                    setPage((prevPageNumber) => prevPageNumber + 1);
+                }
+            });
+            if (node) observer.current.observe(node);
+        },
+        [loading, hasMore, setPage]
+    );
 
     if (loading) {
         return <div>Loading...</div>;
@@ -24,8 +39,6 @@ export const Posts = () => {
     const filteredPosts = posts.filter((post: PostWithCommentsAndUsers) =>
         post.user?.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
-
-    console.log(posts);
 
     return (
         <div>
@@ -65,11 +78,21 @@ export const Posts = () => {
                 }}
             >
                 {filteredPosts.length > 0 ? (
-                    filteredPosts?.map((post: PostWithCommentsAndUsers) => (
-                        <PostItem key={post.id} post={post} />
-                    ))
+                    filteredPosts.map(
+                        (post: PostWithCommentsAndUsers, index) => {
+                            if (filteredPosts.length === index + 1) {
+                                return (
+                                    <div ref={lastPostElementRef} key={post.id}>
+                                        <PostItem post={post} />
+                                    </div>
+                                );
+                            } else {
+                                return <PostItem key={post.id} post={post} />;
+                            }
+                        }
+                    )
                 ) : (
-                    <p>No posts found...</p>
+                    <p>No posts found</p>
                 )}
             </div>
         </div>

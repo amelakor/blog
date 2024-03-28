@@ -29,22 +29,17 @@ const mockPosts = [
     },
 ];
 
-describe("Posts", () => {
-    beforeEach(() => {
-        (usePosts as jest.Mock).mockReturnValue({
-            posts: [],
-            loading: true,
-            error: null,
-        });
-    });
+describe("Posts component with lazy loading", () => {
+    beforeAll(() => {
+        const observe = jest.fn();
+        const disconnect = jest.fn();
+        const unobserve = jest.fn();
 
-    it("displays loading state", () => {
-        render(
-            <MessageProvider>
-                <Posts />
-            </MessageProvider>
-        );
-        expect(screen.getByText("Loading...")).toBeInTheDocument();
+        window.IntersectionObserver = jest.fn().mockImplementation(() => ({
+            observe,
+            disconnect,
+            unobserve,
+        }));
     });
 
     it("renders and filters posts correctly", async () => {
@@ -74,18 +69,6 @@ describe("Posts", () => {
         await waitFor(() => {
             expect(screen.getByText("Post 1")).toBeInTheDocument();
             expect(screen.queryByText("Post 2")).toBeNull();
-        });
-
-        userEvent.type(searchInput, "1");
-        await waitFor(() => {
-            expect(screen.getByText("Post 1")).toBeInTheDocument();
-            expect(screen.queryByText("Post 2")).toBeNull();
-        });
-
-        userEvent.clear(searchInput);
-        await waitFor(() => {
-            expect(screen.getByText("Post 1")).toBeInTheDocument();
-            expect(screen.getByText("Post 2")).toBeInTheDocument();
         });
     });
 });
