@@ -11,10 +11,10 @@ Instructions to get the project running on your local machine.
 To install and run the project locally, follow these steps:
 
 **Clone the repository:**
-git clone https://github.com/amelakor/blog.git
-cd [project-directory]
-npm install
+`git clone https://github.com/amelakor/blog.git`
+`cd [project-directory]`
+`npm install`
 
 ### Run the application
 
-npm run dev
+`npm run dev`
